@@ -1,0 +1,127 @@
+@inherits Custom.Hybrid.Razor12
+@using ToSic.Razor.Blade;
+@* This inherits statement gets you features like App, CmsContext, Data etc. - you can delete this comment *@
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+@{
+    var id = 1;
+}
+
+<div class="overview">
+@foreach(var data in AsList(Data)) {
+    var chartId = id++;
+    var classSelector = "data__visualisation--" + chartId;
+    
+    var labels_variable = "labels_" + chartId; 
+    var data_variable = "data_" + chartId;
+    var first_dataset = true;
+
+    <div @Edit.TagToolbar(data) class="data">
+        <h2 class="h2-black">@data.Name</h2>
+        <div class="data__description">@Html.Raw(data.Description)</div>
+
+        <h3 class="h3-black">Datasets</h3>
+        <ul class="mt-element">
+          @foreach(var dataset in data.Datasets) {
+            <li @Edit.TagToolbar(dataset)>
+              <small>@dataset.Label</small>
+            </li>
+          }
+        </ul>
+        <a class="lifbi-button-primary" onclick="showChart('.@classSelector')">Zeige an</a>
+        <div class="data__visualisation @classSelector">
+            <canvas id="chart_@chartId"></canvas>
+        </div>
+
+        
+    </div>
+
+    <script>
+
+
+  //Versuch die Datasets in eigene Referenzobjekte zu packen.
+    const data_@chartId = {
+      labels:  @Html.Raw(data.Labels),
+      datasets: [
+          @foreach(var dataset in data.Datasets)  {
+            var dataString = "";
+            if(!first_dataset) { dataString += ","; }
+            first_dataset = false;
+
+            dataString += "{label: '" + dataset.Label.ToString() +"'";
+            dataString += ", data: " + dataset.Data.ToString();
+            dataString += ", backgroundColor: '" + dataset.backgroundColor.ToString()+"'";
+            dataString += ", borderColor: '" + dataset.borderColor.ToString()+"'";
+            dataString += ", borderWidth: " + dataset.borderWidth.ToString() +"}";
+
+            @Html.Raw(dataString)
+          }
+      ]
+    };
+    
+
+    const config_@chartId = {
+      type: '@data.ChartType',
+      data: data_@chartId,
+      
+      @{
+        var optionsString = "options: {"; 
+        if(data.showTitle != null && data.showTitle) {
+          optionsString += "plugins: { title: { display: true, fontFamily: '"+ data.fontFamily +"', fontSize: 24, text: '" + data.Name +"' }},";
+        }
+        if(data.responsive == null || data.responsive) {
+          optionsString += "responsive: true,";
+        }
+        else{
+          optionsString += "responsive: false,";
+        }
+        if(data.maintainAspectRatio == null || data.maintainAspectRatio) {
+          optionsString += "maintainAspectRatio: true,";
+        }
+        else{
+          optionsString += "maintainAspectRatio: false,";
+        }
+        optionsString += "}";
+      }
+
+      @Html.Raw(optionsString)
+    }
+
+    let myChart_@chartId = new Chart(
+      document.getElementById('chart_@chartId'),
+      config_@chartId
+    );
+  </script>
+}
+</div>
+
+<div id="charts" class="mt-content">
+
+</div>
+
+<script>
+    var showChart = function(selector) {
+        $('.data__visualisation').hide();
+        $('#charts').append( $(selector) );
+        $(selector).toggle();
+    }
+</script>
+
+
+<style>
+.overview {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 50px;
+}
+
+.data__visualisation {
+    display: none;
+}
+
+.data__description {
+  hyphens: auto; 
+  text-align: justify
+}
+</style>
